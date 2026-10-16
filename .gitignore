@@ -1,0 +1,15 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# 本地数据与隐私（演示数据通过 scripts/seed_demo.py 重建，不随仓库分发）
+data/*.db
+uploads/
+.env
+
+# 工具与临时文件
+工具/
+*.log
+.DS_Store

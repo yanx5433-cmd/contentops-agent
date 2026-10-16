@@ -1,0 +1,20 @@
+# Render Blueprint：推送 GitHub 后在 Render「New → Blueprint」一键部署
+# 文档：https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: contentops-agent
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    # 免费档磁盘是临时的：每次冷启动先用种子脚本重建演示数据，再启动服务
+    startCommand: python scripts/seed_demo.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.6
+      # 安全开关保持默认最小权限（写清楚，避免有人误改）
+      - key: CONTENTOPS_ENABLE_AUTO_PUBLISH
+        value: "0"
+      - key: CONTENTOPS_ENABLE_WEIGHT_WRITEBACK
+        value: "0"
+      # LLM_API_KEY 留空：无 Key 时系统自动降级，全部功能可用

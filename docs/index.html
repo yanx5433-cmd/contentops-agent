@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ContentOps · 带货内容运营工作台（在线演示）</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div class="demo-banner">
+  <b>在线演示（静态版）</b> · 评分引擎 / 合规检查 / 知识库检索 / 评论分类都在浏览器内真实运行，数据刷新即重置 ·
+  <a href="https://github.com/yanx5433-cmd/contentops-agent" target="_blank">源码与完整后端版</a>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<header>
+  <div class="brand">
+    <h1>ContentOps <span>带货内容运营工作台 · 奶油草莓</span></h1>
+    <div class="status"><span class="dot" id="api-dot"></span><span id="api-text">连接中…</span></div>
+  </div>
+  <nav id="tabs">
+    <button data-view="overview" class="active">🏠 总览</button>
+    <button data-view="dashboard">📊 数据看板</button>
+    <button data-view="topics">🎯 选题工作台</button>
+    <button data-view="review">📈 数据复盘</button>
+    <button data-view="comments">💬 评论助手</button>
+    <button data-view="kb">📚 知识库·问答</button>
+    <button data-view="medic">🧪 文案体检</button>
+    <button data-view="import">📥 数据导入</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ============ 总览 ============ -->
+  <section id="view-overview" class="view active">
+    <div class="card guide">
+      <h2>从这里开始（新手三步）</h2>
+      <ol>
+        <li><b>数据导入</b> —— 把创作者后台导出的作品数据 CSV 和橱窗商品 CSV 传进来。没有现成文件就点“下载样例”先跑一遍流程。</li>
+        <li><b>选题工作台</b> —— 输入你想做的选题（比如“150元内秋冬连衣裙实测”），点“创建并评分”，系统给内容分 + 商品分和每个分数的理由；再点“合规审查”查违禁词，没问题点“审批通过”。</li>
+        <li><b>评论助手</b> —— 把评论区的一条留言粘进来，点“生成回复草稿”，复制后自己改改再发。系统只出草稿，不会替你发任何东西。</li>
+      </ol>
+    </div>
+    <div class="cards" id="overview-cards"></div>
+    <div class="card">
+      <h2>最近操作记录（全部动作自动留痕）</h2>
+      <div id="overview-audit" class="hint">加载中…</div>
+    </div>
+  </section>
+
+  <!-- ============ 选题工作台 ============ -->
+  <section id="view-topics" class="view">
+    <div class="two-col">
+      <div class="card">
+        <h2>① 新建选题</h2>
+        <div class="row"><label>选题标题</label><input id="t-title" placeholder="例：150元内秋冬连衣裙三套实测" style="flex:1"></div>
+        <div class="row">
+          <label>类目</label><input id="t-category" list="cat-list" placeholder="女装" style="width:90px">
+          <datalist id="cat-list"><option>女装</option><option>鞋包</option><option>饰品</option><option>美妆</option></datalist>
+          <label>时长(秒)</label><input id="t-duration" type="number" value="30" min="5" max="600" style="width:70px">
+          <label>钩子类型</label><select id="t-hook"></select>
+        </div>
+        <div class="row">
+          <label>钩子强度 <b id="t-strength-val">70</b></label>
+          <input id="t-strength" type="range" min="0" max="100" value="70" style="flex:1">
+        </div>
+        <div class="row">
+          <label>计划发布小时</label><input id="t-hour" type="number" min="0" max="23" value="19" style="width:60px">
+          <label>挂车商品ID（可选）</label><input id="t-product" placeholder="P001" style="width:90px">
+        </div>
+        <textarea id="t-outline" placeholder="脚本大纲（可选）：钩子开头 + 实测内容 + 价格提醒"></textarea>
+        <div class="row" style="margin-top:12px"><button class="btn primary" id="t-create">创建并评分</button></div>
+        <div class="hint">挂车商品ID 填橱窗里的商品ID（数据导入的商品表 external_id），填了就出商品分。</div>
+      </div>
+      <div class="card">
+        <h2>② 评分与审批</h2>
+        <div id="t-result" class="hint">创建选题后，这里会显示双引擎评分明细、短板提示和合规审查结果。</div>
+        <div class="row" id="t-actions" style="display:none; margin-top:12px">
+          <button class="btn" id="t-rescore">重新评分</button>
+          <button class="btn" id="t-review">合规审查</button>
+          <button class="btn primary" id="t-approve">审批通过</button>
+          <button class="btn" id="t-reject">驳回</button>
+        </div>
+        <div class="row" id="t-publish-row" style="display:none; margin-top:4px">
+          <label>标记已发布</label>
+          <input id="t-publish-video" placeholder="已发布视频的 external_id（视频表里的编号）" style="flex:1">
+          <button class="btn" id="t-publish">挂接视频</button>
+          <span class="hint">挂接后进「数据复盘」做预测 vs 实际校准。</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>✨ AI 选题灵感（生成 → 合规预筛 → 批量评分）</h2>
+      <div class="row">
+        <label>类目</label><input id="b-category" list="cat-list" value="女装" style="width:90px">
+        <label>关键词（可选，逗号分隔）</label><input id="b-keywords" placeholder="秋冬连衣裙, 打底裤" style="flex:1">
+        <label>数量</label><input id="b-count" type="number" value="10" min="3" max="20" style="width:60px">
+        <button class="btn primary" id="b-generate">生成灵感</button>
+      </div>
+      <div class="hint" id="b-note" style="margin-bottom:8px">未配置 LLM 时用知识库模式模板生成（确定性降级）；P0 命中候选会被自动丢弃。</div>
+      <div id="b-list"></div>
+    </div>
+    <div class="card">
+      <h2>选题列表（点一行载入到右侧）</h2>
+      <div id="t-list" class="hint">还没有选题，先在左上角建一个。</div>
+    </div>
+  </section>
+
+  <!-- ============ 数据看板 ============ -->
+  <section id="view-dashboard" class="view">
+    <div class="cards" id="db-cards"></div>
+    <div class="chart-grid">
+      <div class="card"><h2>选题漏斗（草稿 → 评分 → 审查 → 通过 → 发布）</h2><div id="chart-funnel" class="chart"></div></div>
+      <div class="card"><h2>评分分布（每选题最新版总分）</h2><div id="chart-score" class="chart"></div></div>
+      <div class="card"><h2>合规命中统计（P0/P1/P2）</h2><div id="chart-compliance" class="chart"></div></div>
+      <div class="card"><h2>视频互动趋势（按发布月份）</h2><div id="chart-trend" class="chart"></div></div>
+      <div class="card"><h2>选题类目分布</h2><div id="chart-category" class="chart"></div></div>
+      <div class="card"><h2>评论意图分布</h2><div id="chart-intents" class="chart"></div></div>
+    </div>
+    <div class="hint" id="db-hint" style="margin-top:4px"></div>
+  </section>
+
+  <!-- ============ 数据复盘 ============ -->
+  <section id="view-review" class="view">
+    <div class="card">
+      <h2>预测 vs 实际（发布后校准）</h2>
+      <div id="rv-calibration" class="hint">加载中…</div>
+    </div>
+    <div class="card">
+      <h2>复盘报告 + 权重修正建议（近 90 天）</h2>
+      <div class="row">
+        <button class="btn primary" id="rv-reload">刷新报告</button>
+        <button class="btn" id="rv-export">导出报告 Markdown</button>
+        <span class="hint">建议由确定性聚合生成，人工确认后改 config.py 才生效。</span>
+      </div>
+      <div id="rv-suggestions"></div>
+      <pre id="rv-markdown" class="report-block" style="display:none"></pre>
+    </div>
+    <div class="card">
+      <h2>视频 × 商品 转化明细（近 90 天，按 GMV 排序）</h2>
+      <div id="rv-detail" class="hint">加载中…</div>
+    </div>
+  </section>
+
+  <!-- ============ 文案体检 ============ -->
+  <section id="view-medic" class="view">
+    <div class="card">
+      <h2>把要发的文案粘进来，实时体检</h2>
+      <div class="row" style="margin-bottom:8px">
+        <span class="hint">视频标题 / 简介 / 评论回复 / 话术都能查；命中按 P0 红、P1 黄、P2 灰高亮，并给改写建议。</span>
+      </div>
+      <textarea id="m-input" placeholder="例：全网最低价的秋冬神器，小个子闭眼入，美白又显瘦"></textarea>
+      <div class="row" style="margin-top:10px"><span id="m-verdict" class="badge badge-gray">等待输入…</span>
+        <span class="hint" id="m-count"></span></div>
+      <div id="m-preview" class="medic-preview hint">输入后这里显示高亮结果</div>
+      <div id="m-hits"></div>
+    </div>
+  </section>
+
+  <!-- ============ 评论助手 ============ -->
+  <section id="view-comments" class="view">
+    <div class="card">
+      <h2>粘贴一条评论区留言</h2>
+      <textarea id="c-input" placeholder="例：160 95斤穿什么码呀 会起球吗"></textarea>
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" id="c-gen">生成回复草稿</button>
+        <span class="hint">分类后自动匹配话术，只出草稿，发出前请自己检查一遍。</span>
+      </div>
+      <div id="c-result"></div>
+    </div>
+    <div class="card">
+      <h2>最近的草稿</h2>
+      <div id="c-list" class="hint">加载中…</div>
+    </div>
+  </section>
+
+  <!-- ============ 知识库·问答 ============ -->
+  <section id="view-kb" class="view">
+    <div class="card">
+      <h2>AI 问答配置（可选增强：配置后问答由模型组织，仍强制只用知识库材料）</h2>
+      <div class="row">
+        <label>API Key</label><input id="llm-key" placeholder="sk-…（只存本机，不回显明文）" style="flex:1">
+        <label>Base URL</label><input id="llm-base" placeholder="https://api.deepseek.com/v1" style="width:230px">
+      </div>
+      <div class="row">
+        <label>模型</label><input id="llm-model" placeholder="deepseek-chat" style="width:150px">
+        <label>每日调用上限</label><input id="llm-cap" type="number" min="0" max="10000" value="200" style="width:80px">
+        <button class="btn primary" id="llm-save">保存配置</button>
+        <button class="btn" id="llm-test">测试连接</button>
+        <span id="llm-status" class="badge badge-gray">未配置</span>
+      </div>
+      <div class="hint">兼容 DeepSeek / 通义 / Kimi 等 OpenAI 格式接口；不配置时全部功能照常可用（模板/原文降级）。公开演示建议不配 Key 或调低上限。</div>
+    </div>
+    <div class="card">
+      <h2>问知识库（爆款结构 / 选题模式 / 合规要点）</h2>
+      <div class="row">
+        <input id="k-q" placeholder="例：小个子女生秋冬做什么选题" style="flex:1">
+        <button class="btn primary" id="k-ask">提问</button>
+        <button class="btn" id="k-reload" title="在 data/knowledge 里新增或修改了 Markdown 后点这里">重载知识库</button>
+      </div>
+      <div id="k-result"></div>
+      <div class="hint" style="margin-top:10px">知识库文件在项目 data/knowledge/ 目录，Markdown 格式，用标题分块；改完点“重载知识库”生效。</div>
+    </div>
+  </section>
+
+  <!-- ============ 数据导入 ============ -->
+  <section id="view-import" class="view">
+    <div class="notice">列名要和样板一致（UTF-8 CSV，5MB 以内，有错整批拒绝不会半途导入）。先点“下载样例”再上传试一遍，熟悉了再传真实数据。</div>
+    <div class="card">
+      <h2>作品数据 videos.csv</h2>
+      <div class="row">
+        <input type="file" id="i-video" accept=".csv">
+        <button class="btn primary" id="i-video-btn">上传导入</button>
+        <a class="btn" href="https://github.com/yanx5433-cmd/contentops-agent/blob/main/data/raw/videos_sample.csv" download>下载样例</a>
+      </div>
+      <div id="i-video-res" class="hint">必填列：external_id、title、views、finish_rate（其余可选）</div>
+    </div>
+    <div class="card">
+      <h2>商品数据 products.csv</h2>
+      <div class="row">
+        <input type="file" id="i-product" accept=".csv">
+        <button class="btn primary" id="i-product-btn">上传导入</button>
+        <a class="btn" href="https://github.com/yanx5433-cmd/contentops-agent/blob/main/data/raw/products_sample.csv" download>下载样例</a>
+      </div>
+      <div id="i-product-res" class="hint">必填列：external_id、title、category、price、commission_rate（其余可选）</div>
+    </div>
+    <div class="card">
+      <h2>销售回流 sales.csv（复盘与校准用）</h2>
+      <div class="row">
+        <input type="file" id="i-sales" accept=".csv">
+        <button class="btn primary" id="i-sales-btn">上传导入</button>
+        <a class="btn" href="https://github.com/yanx5433-cmd/contentops-agent/blob/main/data/raw/sales_sample.csv" download>下载样例</a>
+      </div>
+      <div id="i-sales-res" class="hint">必填列：video_external_id、product_external_id、sales_count（可选：stat_date、gmv、return_count、return_amount）</div>
+    </div>
+  </section>
+</main>
+
+<script src="./demo-data.js"></script>
+<script src="./vendor/echarts.min.js"></script>
+<script src="./demo.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>

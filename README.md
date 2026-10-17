@@ -13,6 +13,14 @@
 |---|---|
 | ![数据复盘](docs/screenshots/review_top.png) | ![文案体检](docs/screenshots/medic_view.png) |
 
+## ▶ 在线演示
+
+**https://yanx5433-cmd.github.io/contentops-agent/**
+
+静态交互版，无需安装：评分引擎、合规检查、知识库 BM25 检索、评论意图分类、AI 选题风暴均由后端逻辑移植至浏览器内**真实运行**（数据为演示快照，刷新重置）。完整后端版可用下方一键部署：
+
+[▶ 一键部署到 Render（免费档）](https://render.com/deploy?repo=https://github.com/yanx5433-cmd/contentops-agent)
+
 ## 核心设计原则
 
 1. **事实与决策分离**：播放/转化/退货数据只存导入快照（`video_fact`/`product_fact` 只增不改），评分每次现算落版本化快照——避免旧数据冒充事实。
